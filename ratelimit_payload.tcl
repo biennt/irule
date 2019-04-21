@@ -2,14 +2,12 @@ when RULE_INIT {
     set static::maxRate 1
     set static::timeout 5
 }
-
 when HTTP_REQUEST {
 	if {[HTTP::uri] starts_with "/mapi/g/"} {
 		set inspect 1
 		HTTP::collect 200
 	}
 }
-
 when HTTP_REQUEST_DATA {
 	if {$inspect == 1} {
 	    set payload [HTTP::payload 200]
