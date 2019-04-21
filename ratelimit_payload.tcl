@@ -14,8 +14,6 @@ when HTTP_REQUEST_DATA {
 	    set search_type [findstr $payload SEARCH]
 	    set sessionstr [findstr $payload session 10 \"]
 	    if {[string length $search_type]} {
-	        #log local0. "PAYLOAD|$payload"
-	        #log local0. "SESSION|$sessionstr"
 	        if { [set methodCount [table incr -mustexist "$sessionstr"]] ne "" } then {
                 if { $methodCount > $static::maxRate } then {
                     log local0. "too many search actions from $sessionstr"
