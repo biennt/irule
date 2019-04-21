@@ -18,7 +18,7 @@ when HTTP_REQUEST_DATA {
 	        #log local0. "SESSION|$sessionstr"
 	        if { [set methodCount [table incr -mustexist "$sessionstr"]] ne "" } then {
                 if { $methodCount > $static::maxRate } then {
-                    log local0. "LIMIT too many search actions from $sessionstr"
+                    log local0. "too many search actions from $sessionstr"
                     HTTP::respond 200 content "{}"
                     return
                 }   
