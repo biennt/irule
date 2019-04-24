@@ -14,6 +14,7 @@ when HTTP_REQUEST {
 
 when HTTP_RESPONSE {
 	if {$inspect == 1} {
+	    set hsl [HSL::open -proto UDP -pool splunkpool]
 	    set repTime [clock clicks -milliseconds]
 	    set processedTime [expr $repTime - $reqTime]
 	    set lastAvg [table lookup -notouch -subtable logintime avgTime]
@@ -24,12 +25,15 @@ when HTTP_RESPONSE {
 	        table set -subtable logintime avgTime [expr ($processedTime + $lastAvg)/2]
 	    }
 	    if {$processedTime > $static::maxTimeout} {
-	        log local0.info "LOGIN-REP-MAXTIMEOUT: $static::maxTimeout | $processedTime | Last avgTime: $lastAvg | clientip: [IP::client_addr]"
+	        log local0.info "LOGIN-REP-MAXTIMEOUT: $static::maxTimeout | ProTime: $processedTime | avgTime: $lastAvg | clientip: [IP::client_addr]"
+	        HSL::send $hsl "LOGIN-REP-MAXTIMEOUT: $static::maxTimeout | ProTime: $processedTime | avgTime: $lastAvg | clientip: [IP::client_addr]\n"
 	    } else {
 	        if {[expr $processedTime / $lastAvg] > $static::maxPeak} {
-   		        log local0.info "LOGIN-REP-PEAK: process time: $processedTime | Last avgTime: $lastAvg | clientip: [IP::client_addr]"
+   		        log local0.info "LOGIN-REP-PEAK: $static::maxPeak | ProTime: $processedTime | avgTime: $lastAvg | clientip: [IP::client_addr]"
+   		        HSL::send $hsl "LOGIN-REP-PEAK: $static::maxPeak | ProTime: $processedTime | avgTime: $lastAvg | clientip: [IP::client_addr]\n"
 	        } else {
-	            log local0.info "LOGIN-REP-NORMAL: process time: $processedTime | Last avgTime: $lastAvg | clientip: [IP::client_addr]"
+	            log local0.info "LOGIN-REP-NORMAL: ProTime: $processedTime | avgTime: $lastAvg | clientip: [IP::client_addr]"
+	            HSL::send $hsl "LOGIN-REP-NORMAL: ProTime: $processedTime | avgTime: $lastAvg | clientip: [IP::client_addr]\n"
 	        }
 	    }
     }
