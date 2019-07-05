@@ -8,10 +8,6 @@ when HTTP_REQUEST {
 		set inspect_login 1
 		HTTP::collect 100
 	 }
-     if {[HTTP::uri] starts_with "/handler/MBCheckLogin.aspx"} {
-		set inspect_login_mobile 1
-		HTTP::collect 100
-	 }
      if {[HTTP::uri] starts_with "/handler/core.vpbs"} {
 		set inspect_core 1
 		HTTP::collect 200
