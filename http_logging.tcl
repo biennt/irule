@@ -32,7 +32,11 @@ when HTTP_REQUEST_DATA {
 
 when HTTP_RESPONSE {
   set respTime [clock format [clock seconds] -format "%d/%m/%Y %H:%M:%S"]
-  HTTP::collect 200
+  set collectpayload 0
+  if {[HTTP::header Content-Type] contains "text"} {
+    HTTP::collect 200
+    set collectpayload 1
+  }
   set logstring "RESPONSE_HEADER|$random|$respTime|[HTTP::status]"
     foreach aHeader [HTTP::header names] {
       set logstring "$logstring|$aHeader: [HTTP::header value $aHeader]"
@@ -41,8 +45,11 @@ when HTTP_RESPONSE {
 }
 
 when HTTP_RESPONSE_DATA {
-  set responsepayload [HTTP::payload 200]
-  HTTP::release
-  set logstring "RESPONSE_PAYLOAD|$random|$reqTime|responsepayload"
-  log local0.info $logstring
+  if { $collectpayload == 1 } {
+    set respTime [clock format [clock seconds] -format "%d/%m/%Y %H:%M:%S"]
+    set responsepayload [HTTP::payload 200]
+    set logstring "RESPONSE_PAYLOAD|$random|$respTime|$responsepayload"
+    log local0.info $logstring
+    HTTP::release
+  }
 }
