@@ -1,50 +1,48 @@
+when CLIENT_ACCEPTED {
+	# Generate a random ID for this session
+   	set count 20
+   	set letters [ list a b c d e f g h i j k l m n o p q r s t u v w x y z ]
+   	set random ""
+   	set logme 0
+   	for { set i 1 } { $i < $count } { incr i } {
+      		append random [lindex $letters [expr { int (rand() * 26) }]]
+   	}
+   	# Get time for start of TCP connection in milleseconds
+	set tcp_start_time [clock clicks -milliseconds]
+	# Log the start of a new TCP connection
+	log local0. ">$random< New TCP connection from [IP::client_addr]:[TCP::client_port] to [IP::local_addr]:[TCP::local_port]"
+}
+
 when HTTP_REQUEST {
-   set inspect_login 0
-   set inspect_core 0
- 
-   set reqTime [clock format [clock seconds] -format "%d/%m/%Y %H:%M:%S"]
-   
-     if {[HTTP::uri] starts_with "/handler/CheckLogin.aspx"} {
-		set inspect_login 1
-		HTTP::collect 100
-	 }
-     if {[HTTP::uri] starts_with "/handler/core.vpbs"} {
-		set inspect_core 1
-		HTTP::collect 200
-	 }
-	 set logstring "<190>|$reqTime|F5_VE|[IP::client_addr]|[TCP::remote_port]|[IP::local_addr]|[TCP::local_port]|[HTTP::method]|[HTTP::uri]|[HTTP::header User-Agent]"
-   if { ($inspect_core == 0) && ($inspect_login == 0) } {
-        set hsl [HSL::open -proto UDP -pool splunk_pool]
-        HSL::send $hsl $logstring
-        #log local0.info $logstring
+  set reqTime [clock format [clock seconds] -format "%d/%m/%Y %H:%M:%S"]
+  set logstring "REQUEST_HEADER|$random|$reqTime|[IP::client_addr]|[HTTP::method]|[HTTP::uri]"
+  foreach aHeader [HTTP::header names] {
+      set logstring "$logstring|$aHeader: [HTTP::header value $aHeader]"
    }
+  log local0.info $logstring
+  HTTP::collect 200
 }
 when HTTP_REQUEST_DATA {
-    if {$inspect_login == 1} {
-        set payload [HTTP::payload 100]
-        set paramlist [split $payload "&"]
-        set userstring [lindex $paramlist 0]
-        set channelstring [lindex $paramlist 2]
-        set userlist [split $userstring "="]
-        set user [lindex $userlist 1]
-        set channellist [split $channelstring "="]
-        set channel [lindex $channellist 1]      
-        set logstring "$logstring|$user|$channel"
-        set hsl [HSL::open -proto UDP -pool splunk_pool]
-        HSL::send $hsl $logstring
-        #log local0.info $logstring
-    }
-    
-    if {$inspect_core == 1} {
-        set payload [HTTP::payload 200]
-        set sessionstr [findstr $payload session 10 \"]
-        set userstr [findstr $payload user 7 \"]
-        set cmdstr [findstr $payload cmd 6 \"]
-        set cstr [findstr $payload \"c\": 5 \"]
-        set logstring "$logstring|$userstr|$sessionstr|$cmdstr|$cstr|$payload"
-        set hsl [HSL::open -proto UDP -pool splunk_pool]
-        HSL::send $hsl $logstring
-        #log local0.info $logstring
-    }
-    HTTP::release
+  set reqTime [clock format [clock seconds] -format "%d/%m/%Y %H:%M:%S"]
+  set payload [HTTP::payload 200]
+  HTTP::release
+  set logstring "REQUEST_PAYLOAD|$random|$reqTime|$payload"
+  log local0.info $logstring
+}
+
+when HTTP_RESPONSE {
+  set respTime [clock format [clock seconds] -format "%d/%m/%Y %H:%M:%S"]
+  HTTP::collect 200
+  set logstring "RESPONSE_HEADER|$random|$respTime|[HTTP::status]"
+    foreach aHeader [HTTP::header names] {
+      set logstring "$logstring|$aHeader: [HTTP::header value $aHeader]"
+   }
+  log local0.info $logstring
+}
+
+when HTTP_RESPONSE_DATA {
+  set responsepayload [HTTP::payload 200]
+  HTTP::release
+  set logstring "RESPONSE_PAYLOAD|$random|$reqTime|responsepayload"
+  log local0.info $logstring
 }
